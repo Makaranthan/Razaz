@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Using SQLite for local development in this environment. 
+  // For production, change this to "postgresql" and provide a POSTGRES_URL.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  role             String   @default("CUSTOMER") // "CUSTOMER" or "ADMIN"
+  shippingAddress  String?  // Stored as JSON string
+  billingAddress   String?  // Stored as JSON string
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  orders           Order[]
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  sku              String   @unique
+  name             String
+  brand            String
+  description      String
+  price            Float
+  category         String   // e.g., 'Men', 'Women', 'Luxury'
+  dialColor        String?
+  strapMaterial    String?
+  movementType     String?  // e.g., 'Automatic', 'Quartz', 'Smart'
+  stockQuantity    Int      @default(0)
+  images           String   // Stored as JSON array string
+  isFeatured       Boolean  @default(false)
+  isBestseller     Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  orderItems       OrderItem[]
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id])
+  status           String      @default("PENDING") // PENDING, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  totalAmount      Float
+  taxAmount        Float       @default(0)
+  shippingAmount   Float       @default(0)
+  stripePaymentId  String?     @unique
+  shippingDetails  String      // Stored as JSON string
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  items            OrderItem[]
+}
+
+model OrderItem {
+  id               String   @id @default(uuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id])
+  quantity         Int
+  unitPrice        Float    // Snapshot of price at time of purchase
+}
